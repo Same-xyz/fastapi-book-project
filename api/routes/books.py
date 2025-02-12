@@ -52,6 +52,7 @@ async def get_books() -> OrderedDict[int, Book]:
 async def update_book(book_id: int, book: Book) -> Book:
     updated_book = db.update_book(book_id, book)
     if update_book is None:
+        # raise error if book not found
         raise HTTPException(status_code= status.HTTP_404_NOT_FOUND, detail="Book not found")
     return JSONResponse(
         status_code=status.HTTP_200_OK,
