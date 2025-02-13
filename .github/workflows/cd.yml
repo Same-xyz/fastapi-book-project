@@ -35,7 +35,7 @@ jobs:
             docker build -t fastapi-app .
             docker stop fastapi-app || true
             docker rm fastapi-app || true
-            docker run -d -p 8000:8000 --name fastapi-app fastapi-app
+            docker run -d -p 8000:8000 --name fastapi-app
 
             # Restart Nginx
             sudo systemctl restart nginx
