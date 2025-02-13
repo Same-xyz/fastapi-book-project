@@ -13,34 +13,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Build Docker Image
-        run: |
-          docker build -t fastapi-app .
-
-      - name: Push Docker Image to Azure VM
+      - name: Set Up SSH Key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+
+      - name: Copy Files to Azure VM
+        env:
           AZURE_HOST: ${{ secrets.AZURE_HOST }}
           AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
           scp -i private_key -o StrictHostKeyChecking=no \
-              -r * $AZURE_USERNAME@$AZURE_HOST:/home/$AZURE_USERNAME/app
+              -r . $AZURE_USERNAME@$AZURE_HOST:/home/$AZURE_USERNAME/app
 
-      - name: Deploy Application
+      - name: Deploy Application on Azure VM
         env:
-          SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
           AZURE_HOST: ${{ secrets.AZURE_HOST }}
           AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
         run: |
           ssh -i private_key -o StrictHostKeyChecking=no $AZURE_USERNAME@$AZURE_HOST << 'EOF'
             cd /home/$AZURE_USERNAME/app
+
+            # Build and Run Docker Container
             docker build -t fastapi-app .
             docker stop fastapi-app || true
             docker rm fastapi-app || true
             docker run -d -p 8000:8000 --name fastapi-app fastapi-app
-          EOF
 
             # Restart Nginx
-          sudo systemctl restart nginx
+            sudo systemctl restart nginx
           EOF
