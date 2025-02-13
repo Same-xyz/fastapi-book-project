@@ -13,13 +13,14 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Setup SSH Key
+      - name: Set Up SSH Key
         env:
           SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
         run: |
-          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > private_key
+          chmod 600 private_key
 
-      - name: Copy Project Files to Azure VM
+      - name: Copy Files to Azure VM
         env:
           AZURE_HOST: ${{ secrets.AZURE_HOST }}
           AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
@@ -27,31 +28,15 @@ jobs:
           scp -i private_key -o StrictHostKeyChecking=no \
               -r . $AZURE_USERNAME@$AZURE_HOST:/home/$AZURE_USERNAME/app
 
-      - name: SSH into Azure VM and Deploy
+      - name: Deploy Application on Azure VM
         env:
           AZURE_HOST: ${{ secrets.AZURE_HOST }}
           AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
         run: |
           ssh -i private_key -o StrictHostKeyChecking=no $AZURE_USERNAME@$AZURE_HOST << 'EOF'
-            set -e  # Exit on error
-            
-            # Navigate to project directory
             cd /home/$AZURE_USERNAME/app
-            
-            # Ensure Dockerfile exists
-            if [ ! -f Dockerfile ]; then
-              echo "Error: Dockerfile not found!"
-              exit 1
-            fi
 
-            # Fix Docker permissions
-            sudo usermod -aG docker $USER
-            sudo chmod 666 /var/run/docker.sock
-
-            # Enable BuildKit
-            export DOCKER_BUILDKIT=1
-
-            # Build and deploy the container
+            # Build and Run Docker Container
             docker build -t fastapi-app .
             docker stop fastapi-app || true
             docker rm fastapi-app || true
