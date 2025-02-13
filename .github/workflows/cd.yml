@@ -13,7 +13,7 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Copy Files to Azure VMUsing Appleboy SSH
+      - name: Copy Files Using Appleboy SSH
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.AZURE_HOST }}
