@@ -13,28 +13,23 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Set Up SSH Key
-        env:
-          SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
-        run: |
-          echo "$SSH_PRIVATE_KEY" | tr -d '\r' > private_key
-          chmod 600 private_key
-
-      - name: Copy Files to Azure VM
-        env:
-          AZURE_HOST: ${{ secrets.AZURE_HOST }}
-          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
-        run: |
-          scp -i private_key -o StrictHostKeyChecking=no \
-              -r . $AZURE_USERNAME@$AZURE_HOST:/home/$AZURE_USERNAME/app
+      - name: Copy Files to Azure VMUsing Appleboy SSH
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.AZURE_HOST }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          source: "." 
+          target: "/home/${{ secrets.AZURE_USERNAME }}/app"
 
       - name: Deploy Application on Azure VM
-        env:
-          AZURE_HOST: ${{ secrets.AZURE_HOST }}
-          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
-        run: |
-          ssh -i private_key -o StrictHostKeyChecking=no $AZURE_USERNAME@$AZURE_HOST << 'EOF'
-            cd /home/$AZURE_USERNAME/app
+        uses: appleboy/ssh-action@v0.1.8
+        with:
+          host: ${{ secrets.AZURE_HOST }}
+          username: ${{ secrets.AZURE_USERNAME }}
+          key: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/${{ secrets.AZURE_USERNAME }}/app
 
             # Build and Run Docker Container
             docker build -t fastapi-app .
@@ -44,4 +39,3 @@ jobs:
 
             # Restart Nginx
             sudo systemctl restart nginx
-          EOF
