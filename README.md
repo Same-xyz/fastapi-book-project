@@ -129,9 +129,9 @@ The API includes proper error handling for:
 - Invalid genre types
 - Malformed requests
 
-## FastAPI Book Management API - Deployment Guide
+# FastAPI Book Management API - Deployment Guide
 
-### Overview
+## Overview
 
 This document provides step-by-step instructions on how to deploy the **FastAPI Book Management API** using **Render** and **Azure Virtual Machine (VM)**. Both deployments utilize **Docker**, with CI/CD handling repository cloning.
 
