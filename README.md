@@ -129,6 +129,132 @@ The API includes proper error handling for:
 - Invalid genre types
 - Malformed requests
 
+## FastAPI Book Management API - Deployment Guide
+
+### Overview
+
+This document provides step-by-step instructions on how to deploy the **FastAPI Book Management API** using **Render** and **Azure Virtual Machine (VM)**. Both deployments utilize **Docker**, with CI/CD handling repository cloning.
+
+---
+
+## 🚀 Deployment on Render
+
+### **Prerequisites**
+- A **Render** account
+- A **Dockerfile** in your repository
+- CI/CD configured to build and deploy the application
+
+### **Deployment Steps**
+1. **Login to Render** and navigate to the **New Web Service** section.
+2. **Connect your repository** where the FastAPI project is stored.
+3. **Select Docker as the build method** since the deployment is based on a Dockerfile.
+4. Render automatically detects the Dockerfile and builds the image.
+5. **Expose port 8000** (default FastAPI port) if needed in Render settings.
+6. Once the deployment is complete, your API will be available at `https://your-app.onrender.com`.
+
+### **Testing Render Deployment**
+- Access **Swagger UI**: `https://your-app.onrender.com/docs`
+- API Health Check: `https://your-app.onrender.com/healthcheck`
+- Test endpoints using `curl`:
+  ```bash
+  curl -X GET https://your-app.onrender.com/api/v1/books/
+  ```
+
+---
+
+## 🏗 Deployment on Azure VM (Ubuntu 24.04 LTS)
+
+### **Prerequisites**
+- An **Azure Virtual Machine** (Ubuntu 24.04 LTS)
+- **Docker & Docker Compose** installed on the VM
+- **Firewall rule** allowing traffic on port 80 (for Nginx) or 8000 (if directly exposed)
+
+### **Deployment Steps**
+1. **Access the VM via SSH:**
+   ```bash
+   ssh azureuser@your-vm-public-ip
+   ```
+2. **Update the system:**
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   ```
+3. **Install Docker:**
+   ```bash
+   sudo apt install -y docker.io
+   ```
+4. **Run the FastAPI container:**
+   ```bash
+   docker run -d -p 8000:8000 your-docker-image
+   ```
+5. **Verify container logs:**
+   ```bash
+   docker logs <container_id>
+   ```
+6. **Check if the application is running:**
+   ```bash
+   curl http://your-vm-public-ip/healthcheck
+   ```
+
+### **Nginx Reverse Proxy (Optional)**
+If you want to expose your FastAPI app on port 80:
+1. **Install Nginx:**
+   ```bash
+   sudo apt install -y nginx
+   ```
+2. **Edit Nginx config:**
+   ```bash
+   sudo nano /etc/nginx/sites-available/fastapi
+   ```
+   Add the following:
+   ```nginx
+   server {
+       listen 80;
+       location / {
+           proxy_pass http://localhost:8000;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+   }
+   ```
+3. **Enable the configuration and restart Nginx:**
+   ```bash
+   sudo ln -s /etc/nginx/sites-available/fastapi /etc/nginx/sites-enabled/
+   sudo systemctl restart nginx
+   ```
+
+### **Testing Azure Deployment**
+- Access **Swagger UI**: `http://your-vm-public-ip/docs`
+- API Health Check: `http://your-vm-public-ip/healthcheck`
+- Test endpoints using `curl`:
+  ```bash
+  curl -X GET http://your-vm-public-ip/api/v1/books/
+  ```
+
+---
+
+## 🎯 Key Differences Between Render and Azure VM
+
+| Feature            | Render Deployment | Azure VM Deployment |
+|-------------------|------------------|---------------------|
+| **Setup**        | Fully managed     | Requires manual setup |
+| **Scaling**      | Auto-scaling      | Manual scaling required |
+| **Port Handling**| Automatic         | Needs manual firewall rules |
+| **Reverse Proxy**| Not needed        | Requires Nginx setup |
+| **Custom Config**| Limited control   | Full control over OS & environment |
+
+---
+
+## ✅ Conclusion
+Both **Render** and **Azure VM** provide effective ways to deploy a FastAPI application.
+- **Use Render** if you want a **fully managed, simple deployment** without managing infrastructure.
+- **Use Azure VM** if you need **full control over your server**, custom configurations, and scalability options.
+
+🚀 Happy Deploying!
+
+
+
 ## Contributing
 
 1. Fork the repository
