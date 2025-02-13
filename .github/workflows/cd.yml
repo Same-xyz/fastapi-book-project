@@ -1,18 +1,46 @@
-name: Continuous Deployment
+name: Deploy to Azure
+
 on:
   push:
     branches:
       - main
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v3
 
-      - name: Deploy FastAPI
+      - name: Build Docker Image
         run: |
-          curl -X POST "${{secrets.RENDER_DEPLOY_HOOK}}"
-          -H "Content-Type: application/json" \
-          --data '{"serviceId": "fastapi-service-id"}'
+          docker build -t fastapi-app .
 
+      - name: Push Docker Image to Azure VM
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          AZURE_HOST: ${{ secrets.AZURE_HOST }}
+          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key && chmod 600 private_key
+          scp -i private_key -o StrictHostKeyChecking=no \
+              -r * $AZURE_USERNAME@$AZURE_HOST:/home/$AZURE_USERNAME/app
+
+      - name: Deploy Application
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.AZURE_SSH_PRIVATE_KEY }}
+          AZURE_HOST: ${{ secrets.AZURE_HOST }}
+          AZURE_USERNAME: ${{ secrets.AZURE_USERNAME }}
+        run: |
+          ssh -i private_key -o StrictHostKeyChecking=no $AZURE_USERNAME@$AZURE_HOST << 'EOF'
+            cd /home/$AZURE_USERNAME/app
+            docker build -t fastapi-app .
+            docker stop fastapi-app || true
+            docker rm fastapi-app || true
+            docker run -d -p 8000:8000 --name fastapi-app fastapi-app
+          EOF
+
+            # Restart Nginx
+          sudo systemctl restart nginx
+          EOF
